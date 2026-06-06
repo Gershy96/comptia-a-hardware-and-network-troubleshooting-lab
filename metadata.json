@@ -1,0 +1,6 @@
+{
+  "name": "CompTIA A+ Hardware Troubleshooting Lab",
+  "description": "An interactive IT technician simulator to master CompTIA A+ Core 1 (220-1201) Domain 5 hardware troubleshooting using the official six-step methodology.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
