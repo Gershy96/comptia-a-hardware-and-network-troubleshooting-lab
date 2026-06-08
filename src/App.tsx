@@ -117,6 +117,48 @@ export default function App() {
   const [docSolution, setDocSolution] = useState<string>('');
   const [docPreventive, setDocPreventive] = useState<string>('');
   const [warningMsg, setWarningMsg] = useState<string | null>(null);
+  const [showConfirmClear, setShowConfirmClear] = useState<boolean>(false);
+
+  const SCENARIO_PREVENTIVE_ACTIONS: Record<string, string> = {
+    'scen_016_cmos_battery': 'Maintain a local stock of spare CR2032 lithium coin cell batteries and establish a 5-year proactive replacement schedule for office workstations',
+    'scen_001_motherboard_caps': 'Deploy high-quality UPS surge protection systems to guard motherboard capacitors from power spikes',
+    'scen_002_ram_intermittent': 'Establish routine MemTest86 diagnostic audits and configure ECC alerts where applicable',
+    'scen_003_cpu_thermal': 'Schedule quarterly dust cleanup venting and refresh CPU thermal paste every two years',
+    'scen_004_psu_voltage': 'Implement active power load balances and register surge-suppression line filters',
+    'scen_005_storage_unrecognized': 'Configure standard BIOS Boot Order hierarchies and secure chassis storage locking rails',
+    'scen_006_storage_clicking': 'Set up local automated disk backup schedules and configure SMART pre-failure alerts',
+    'scen_007_printer_faded': 'Store replacement cartridges/toners in a cool, low-humidity storage locker and run self-clean diagnostics monthly',
+    'scen_008_mobile_draining': 'Enforce battery health threshold monitors and limit overnight high-voltage continuous charging',
+    'scen_009_network_apipa': 'Deploy redundant DHCP service failover pools to prevent IP address lease exhaustion',
+    'scen_010_network_conflict': 'Maintain active IP/MAC address pools and deploy dynamic IP assignment structures',
+    'scen_011_display_flicker': 'Upgrade physical interface cabling with certified high-bandwidth shielded digital cables',
+    'scen_012_printer_thermal_blank': 'Store heat-sensitive paper media away from high temperatures and verify loading alignment directions',
+    'scen_013_beep_codes_ram': 'Check memory mounting tabs and clean slot terminals using compressed air & isopropyl alcohol',
+    'scen_014_network_dns_fail': 'Configure redundant secondary fallback DNS servers (such as 8.8.8.8 or 1.1.1.1) in local address profiles',
+    'scen_015_raid_degraded': 'Configure real-time server email alerts for physical disk shelf hardware errors',
+    'scen_017_projector_aspect': 'Configure OS standard screen projection rules to project at native aspect ratios',
+    'scen_018_wifi_interference': 'Deploy dual-band router access points to steer users off congested 2.4GHz consumer spectrums',
+    'scen_019_printer_ghosting': 'Ensure scheduled preventative printer maintenance kits (fuser, transfer roller) are installed on time',
+    'scen_020_tablet_unresponsive': 'Perform routine digitizer recalibrations and check screen protector alignments quarterly',
+    'scen_021_network_jitter': 'Configure administrative Quality of Service (QoS) rules to prioritize real-time VoIP packets',
+    'scen_022_network_flapping': 'Inspect RJ-45 wall drops for strain and shield ports from heavy physical cable drag',
+    'scen_023_display_burnin': 'Apply short screen-saver timeouts and configure active panel pixel-shifting algorithms',
+    'scen_024_display_dead_pixel': 'Run specialized screen exercises to massage stuck liquid crystals with rapid cycling color sequences',
+    'scen_025_projector_thermal': 'Clear air intake paths of teaching booth projectors and replace clogged dust filters quarterly',
+    'scen_026_storage_missing_drive': 'Ensure internal storage power branches use high-vibration locking SATA / NVMe latch connectors',
+    'scen_027_storage_bcd_corrupt': 'Set up automatic hourly OS system restore points and lock standard user write-rights to the Master Boot partition',
+    'scen_028_printer_paper_jam': 'Inspect paper feed rubber separation pads and roller rings for wear patterns and clean off paper glaze',
+    'scen_029_printer_inkjet_clogged': 'Enforce printer automatic low-frequency clean-sweeps to keep active ink nozzle arrays wet',
+    'scen_030_printer_drum_scratch': 'Only use approved micro-filtered toner cartridges and clean photo-receptive drum tracks using special static-free vacuums',
+    'scen_031_printer_impact_ribbon': 'Routinely rotate and oil impact printhead pin arrays to prevent heat locks and ribbon dry-outs',
+    'scen_032_mobile_liquid': 'Supply administrative staff with heavy-duty IP68 liquid-proof protective carrying cases',
+    'scen_033_mobile_malware': 'Deploy strict Mobile Device Management (MDM) endpoint policies to sandbox unauthorized application background installations',
+    'scen_034_mobile_screen_crack': 'Supply field personnel with high-durability thermoplastic polyurethane (TPU) screen guards',
+    'scen_035_power_burnt_smell': 'Decommission high-duty server workstations after five consecutive years of standard room temperature operation',
+    'scen_036_power_unlatched_plug': 'Instruct PC builders to fully latch dual-retention motherboard ATX power clips until an audible click is heard',
+    'scen_037_cpu_skewed_pins': 'Apply uniform cross-pattern screwdriver torque rules when clamping down heavy custom cooling plates',
+    'scen_038_ram_memory_thrashing': 'Audit workstation application footprints and baseline recommended minimum memory counts before rolling out software'
+  };
 
   const PREVENTIVE_ACTIONS_BY_SUBSYSTEM: Record<string, string> = {
     'Motherboard': 'Deploy high-quality UPS surge protection systems to guard motherboard capacitors from power spikes',
@@ -253,22 +295,41 @@ export default function App() {
   const step3Preventives = useMemo(() => {
     if (!activeScenario) return [];
     
-    const correctKey = activeScenario.subsystem || 'Motherboard';
-    const correct = PREVENTIVE_ACTIONS_BY_SUBSYSTEM[correctKey] || 'Deploy high-quality UPS surge protection systems to guard motherboard capacitors from power spikes';
+    const correct = SCENARIO_PREVENTIVE_ACTIONS[activeScenario.id] || 
+      PREVENTIVE_ACTIONS_BY_SUBSYSTEM[activeScenario.subsystem || 'Motherboard'] || 
+      'Deploy high-quality UPS surge protection systems to guard motherboard capacitors from power spikes';
     
-    const others = Object.entries(PREVENTIVE_ACTIONS_BY_SUBSYSTEM)
-      .filter(([subsystem]) => subsystem !== correctKey)
+    // Select all other possible detailed preventive actions as distraction fodder
+    const otherCandidates = Object.entries(SCENARIO_PREVENTIVE_ACTIONS)
+      .filter(([id, text]) => id !== activeScenario.id && text !== correct)
       .map(([_, text]) => text);
+
+    // Grab 5 distinct distractors dynamically linked to the scenario index to ensure fresh options every time
+    const sKeys = Object.keys(SCENARIO_PREVENTIVE_ACTIONS);
+    const correctIdx = sKeys.indexOf(activeScenario.id);
+    const startIndex = correctIdx !== -1 ? (correctIdx + 1) % otherCandidates.length : 0;
+    
+    const selectedDistractors: string[] = [];
+    for (let i = 0; i < 5; i++) {
+      // Select 5 non-duplicating alternatives
+      const idx = (startIndex + i) % otherCandidates.length;
+      const val = otherCandidates[idx];
+      if (val && !selectedDistractors.includes(val)) {
+        selectedDistractors.push(val);
+      }
+    }
       
-    const selected = others.slice(0, 5);
-    const combined = [correct, ...selected];
+    const combined = [correct, ...selectedDistractors];
     combined.sort();
     return combined;
   }, [activeScenario]);
 
-  // Memoize step1 actions to optimize rendering and state transitions
+  // Memoize step1 actions to optimize rendering and state transitions with smart, tricky distractors
   const step1Actions = useMemo(() => {
-    return GLOBAL_ACTIONS.filter(act => 
+    if (!activeScenario) return [];
+
+    // Filter down to the matching tab's actions (comptiaStep !== 4)
+    const tabActions = GLOBAL_ACTIONS.filter(act => 
       act.comptiaStep !== 4 && (
         activeTab === 'visual' 
           ? act.category === 'visual' 
@@ -277,7 +338,86 @@ export default function App() {
             : act.category === 'testing' || act.category === 'hardware'
       )
     );
-  }, [activeTab]);
+
+    // Identify the required tests for the current scenario
+    const requiredTestIds = activeScenario.hiddenRootCause.requiredTests;
+    const requiredForThisTab = tabActions.filter(act => requiredTestIds.includes(act.id));
+
+    // Identify the rest of the actions in this tab
+    const otherInTab = tabActions.filter(act => !requiredTestIds.includes(act.id));
+
+    const subsystem = (activeScenario.subsystem || '').toLowerCase();
+
+    // Prioritize actions in this tab that are relevant to the active scenario's subsystem
+    const relatedOthers = otherInTab.filter(act => {
+      const label = act.label.toLowerCase();
+      const id = act.id.toLowerCase();
+      
+      if (subsystem === 'printer') {
+        return label.includes('printer') || label.includes('ink') || label.includes('toner') || label.includes('printhead') || label.includes('fuser') || label.includes('paper') || label.includes('spooler') || id.includes('fuser') || id.includes('roller');
+      }
+      if (subsystem === 'network') {
+        return label.includes('network') || label.includes('router') || label.includes('wifi') || label.includes('ip') || label.includes('dns') || label.includes('ping') || label.includes('gateway') || label.includes('trace') || label.includes('dhcp') || label.includes('link') || label.includes('cable');
+      }
+      if (subsystem === 'ram') {
+        return label.includes('ram') || label.includes('memory') || label.includes('dimm') || label.includes('memtest') || label.includes('beep') || id.includes('ram');
+      }
+      if (subsystem === 'storage') {
+        return label.includes('storage') || label.includes('drive') || label.includes('ssd') || label.includes('chkdsk') || label.includes('hdd') || label.includes('sata') || label.includes('raid') || id.includes('storage');
+      }
+      if (subsystem === 'display') {
+        return label.includes('display') || label.includes('gpu') || label.includes('monitor') || label.includes('screen') || label.includes('video') || label.includes('cable') || label.includes('pixel') || label.includes('projector') || id.includes('display');
+      }
+      if (subsystem === 'motherboard') {
+        return label.includes('motherboard') || label.includes('cmos') || label.includes('bios') || label.includes('battery') || label.includes('capacitor') || label.includes('board') || id.includes('bios') || id.includes('cmos');
+      }
+      if (subsystem === 'cpu') {
+        return label.includes('cpu') || label.includes('thermal') || label.includes('paste') || label.includes('cooling') || label.includes('fan') || label.includes('heatsink') || label.includes('temperature') || id.includes('cpu');
+      }
+      if (subsystem.includes('power')) {
+        return label.includes('psu') || label.includes('power') || label.includes('voltage') || label.includes('multimeter') || label.includes('atx') || label.includes('outlet') || id.includes('psu');
+      }
+      if (subsystem.includes('mobile')) {
+        return label.includes('mobile') || label.includes('phone') || label.includes('battery') || label.includes('recalibrate') || label.includes('screen') || id.includes('iphone') || id.includes('mobile');
+      }
+      return false;
+    });
+
+    // Provide high-quality general-purpose decoys/distractors
+    const generalOthers = otherInTab.filter(act => {
+      const id = act.id;
+      return ['inspect_cables', 'sniff_components', 'check_event_viewer', 'check_device_manager', 'test_outlet_receptacle'].includes(id);
+    });
+
+    // Combine priorities: required actions first, then subsystem related, then general checks, then others to pad if needed.
+    const prioritizedPool = [...requiredForThisTab];
+    
+    relatedOthers.forEach(act => {
+      if (!prioritizedPool.some(p => p.id === act.id)) {
+        prioritizedPool.push(act);
+      }
+    });
+
+    generalOthers.forEach(act => {
+      if (!prioritizedPool.some(p => p.id === act.id)) {
+        prioritizedPool.push(act);
+      }
+    });
+
+    otherInTab.forEach(act => {
+      if (!prioritizedPool.some(p => p.id === act.id)) {
+        prioritizedPool.push(act);
+      }
+    });
+
+    // Target a consistent panel layout with exactly 8 options per tab view
+    const finalSelection = prioritizedPool.slice(0, 8);
+
+    // Alphabetically sort final choices to prevent predictable order placement
+    finalSelection.sort((a, b) => a.label.localeCompare(b.label));
+
+    return finalSelection;
+  }, [activeTab, activeScenario]);
 
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const timerRef = useRef<NodeJS.Timeout | null>(null);
@@ -808,21 +948,39 @@ export default function App() {
                         <History className="w-4 h-4 text-emerald-400" /> Lab Session History
                       </div>
                       {casesHistory.length > 0 && (
-                        <button
-                          onClick={() => {
-                            if (window.confirm("Are you sure you want to clear your troubleshooting history/progress and reset your metrics?")) {
-                              setCasesHistory([]);
-                              try {
-                                localStorage.removeItem('comptia_cases_history');
-                              } catch (e) {
-                                console.error(e);
-                              }
-                            }
-                          }}
-                          className="text-[10px] text-rose-400 hover:text-rose-300 font-mono underline transition cursor-pointer"
-                        >
-                          Clear History
-                        </button>
+                        <div className="flex gap-2 items-center">
+                          {showConfirmClear ? (
+                            <>
+                              <button
+                                onClick={() => {
+                                  setCasesHistory([]);
+                                  setShowConfirmClear(false);
+                                  try {
+                                    localStorage.removeItem('comptia_cases_history');
+                                  } catch (e) {
+                                    console.error(e);
+                                  }
+                                }}
+                                className="text-[10px] text-red-400 hover:text-red-300 font-bold border border-rose-950 px-1.5 py-0.5 rounded bg-rose-950/40 transition cursor-pointer"
+                              >
+                                Yes, Clear
+                              </button>
+                              <button
+                                onClick={() => setShowConfirmClear(false)}
+                                className="text-[10px] text-slate-400 hover:text-slate-300 border border-slate-800 px-1.5 py-0.5 rounded hover:bg-slate-800 transition cursor-pointer"
+                              >
+                                Cancel
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => setShowConfirmClear(true)}
+                              className="text-[10px] text-rose-400 hover:text-rose-300 font-mono underline transition cursor-pointer animate-pulse"
+                            >
+                              Clear History
+                            </button>
+                          )}
+                        </div>
                       )}
                     </div>
                     
